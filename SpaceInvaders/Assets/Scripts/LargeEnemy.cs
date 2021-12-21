@@ -5,8 +5,11 @@ using UnityEngine;
 public class LargeEnemy : MonoBehaviour
 {
     [Header("Movement")]
-    //We create a variable to hold our desired waypoint
+    //We create a variable to hold our player base transform
     private Transform PBase;
+    //We create a variable to hold our desired waypoint
+    [SerializeField]
+    private Transform targetWPTransform;
     //We create a variable to hold our speed variable
     [SerializeField]
     private float speed;
@@ -25,10 +28,14 @@ public class LargeEnemy : MonoBehaviour
     private Animator leftThrust;
     //We create a variable to hold our velocity
     private Vector2 leVelocity;
+    //We create a variable to hold our turnRate
+    private float turnRate = 1.0f;
 
     [Header("Round End Logic")]
     //We create a bool to hold the value to tell us whether the round is ending or not
     private bool roundEnd = false;
+    //We create a variable to hold our location that the LE spawns in so that we may return to it when the round is over
+    private Transform startPositionTransform;
 
     
     [Header("Shooting System")]
@@ -67,11 +74,82 @@ public class LargeEnemy : MonoBehaviour
         PBase = GameObject.Find("NuclearReactor").GetComponent<Transform>();
         leBarrier = GameObject.Find("LEBarrier").GetComponent<CircleCollider2D>();
         
-        //We set our rigidbody variable, create our spawn in list and populate it with spawn points, randomize our start location and set the initial position to our randomized spawn
+        //We set our rigidbody variable
         le_Rigidbody2D = GetComponent<Rigidbody2D>();
+
+        //We set the current position to our startPosition
+        startPositionTransform = this.transform;
     }
 
     void Update()
+    {
+        //We pull the bool from our Gamehandler script which tells us whether the round is active or not and set roundEnd to the opposite of that
+        if (GameObject.Find("GameHandler").GetComponent<GameHandler>().roundActive == false)
+        {
+            roundEnd = true;
+        } else
+        {
+            roundEnd = false;
+        }
+
+        ActionsDuringRoundUpdate();
+        ActionsAtEndOfRoundUpdate();
+    }
+    
+    void FixedUpdate()
+    {
+        //We calculate our movement value
+        if (roundEnd == false)
+        {
+            targetWPTransform = PBase;
+        } 
+        else
+        {
+            targetWPTransform = startPositionTransform;
+        }
+
+        movement = targetWPTransform.position - this.transform.position;
+        
+        //We set leVelocity equal to movement normalized * speed
+        leVelocity = (movement).normalized * speed;
+
+        //We check if shouldMove is true or false and call our function MoveToLEWaypoint if it is true
+        if (shouldMove)
+        {
+            MoveToLEWaypoint();
+            rightThrust.SetBool("Moving", true);
+            leftThrust.SetBool("Moving", true);
+        }
+
+        //If we are moving, we align our rotation with the direction we are heading
+        if (le_Rigidbody2D.velocity != Vector2.zero)
+        {
+            float angle = Mathf.Atan2(movement.y, movement.x) * Mathf.Rad2Deg;
+            transform.rotation = Quaternion.AngleAxis(angle, Vector3.forward);
+        }
+
+        //Debug assistance message that tells us the target rotation in euler angles
+        if (debugAssist)
+        {
+            Debug.Log($"LE target rotation is {this.transform.eulerAngles}");
+        }
+
+        //We check to see whether the round is at its end and whether the bay doors have shut
+        //If so, we enact our rotation logic
+        if (roundEnd && leBayDoorT.GetCurrentAnimatorStateInfo(0).IsName("Waiting"))
+        {
+            //step size is equal to speed times frame time
+            float singleStep = turnRate * Time.deltaTime;
+
+            //Rotate the forward vector towards the target direction by one step
+            Vector3 newDirection = Vector3.RotateTowards(transform.forward, movement, singleStep, 0.0f);
+
+            //Calculate a rotation a step closer to the target and applies rotation to this object
+            transform.rotation = Quaternion.LookRotation(newDirection);
+        }
+    }
+
+    private void ActionsDuringRoundUpdate()
     {
         //We check to see whether we should continue moving. If we are close enough to the base, we stop and initiate our bay door anims
         if (leBarrier.OverlapPoint(transform.position) && roundEnd == false)
@@ -111,16 +189,10 @@ public class LargeEnemy : MonoBehaviour
         {
             shouldFire = true;
         }
+    }
 
-        //We pull the bool from our Gamehandler script which tells us whether the round is active or not and set roundEnd to the opposite of that
-        if (GameObject.Find("GameHandler").GetComponent<GameHandler>().roundActive == false)
-        {
-            roundEnd = true;
-        } else
-        {
-            roundEnd = false;
-        }
-
+    private void ActionsAtEndOfRoundUpdate()
+    {
         //We test if the round has ended. If it has, we reverse the direction of the bay door anims and start the cool down anim of the LE laser
         if (roundEnd)
         {
@@ -128,7 +200,7 @@ public class LargeEnemy : MonoBehaviour
             leBayDoorB.SetFloat("Direction", -1);
             leBayDoorT.SetFloat("Direction", -1);
         }
-        
+
         //If the round ends in the middle of the laser charging up, we reverse the direction of the anim
         if (roundEnd && LEFire.GetCurrentAnimatorStateInfo(0).IsName("LEFire"))
         {
@@ -142,37 +214,6 @@ public class LargeEnemy : MonoBehaviour
             leBayDoorB.SetBool("RoundEnd", true);
         }
     }
-    
-    void FixedUpdate()
-    {
-        //We set the velocity directionally related to head towards the PBase, normalize it and multiply the value by our speed value
-        leVelocity = (PBase.position - this.transform.position).normalized * speed;
-
-        //We check if shouldMove is true or false and call our function MoveToLEWaypoint if it is true
-        if (shouldMove)
-        {
-            MoveToLEWaypoint();
-            rightThrust.SetBool("Moving", true);
-            leftThrust.SetBool("Moving", true);
-        }
-
-        //We calculate our movement value
-        movement = this.transform.position - PBase.position;
-
-        //If we are moving, we align our rotation with the direction we are heading
-        if (movement != Vector2.zero)
-        {
-            float angle = Mathf.Atan2(movement.y, movement.x) * Mathf.Rad2Deg;
-            angle = angle - 180.0f;
-            transform.rotation = Quaternion.AngleAxis(angle, Vector3.forward);
-        }
-
-        //Debug assistance message that tells us the target rotation in euler angles
-        if (debugAssist)
-        {
-            Debug.Log($"LE target rotation is {this.transform.eulerAngles}");
-        }
-    }
 
     /*
     1. Rotate 180 degrees to face in the opposite direction
@@ -182,7 +223,7 @@ public class LargeEnemy : MonoBehaviour
     */
 
 
-    //Here we tell our ship to move towards the player base
+    //Here we tell our ship to move towards the player base or leave the player view at the end of the round
     void MoveToLEWaypoint()
     {
         le_Rigidbody2D.velocity = leVelocity;
@@ -191,7 +232,7 @@ public class LargeEnemy : MonoBehaviour
     //Pew Pew
     void FireLaser()
     {
-        //Convert the quaternion to euler angles, then modify the Z to get the roration we want
+        //Convert the quaternion to euler angles, then modify the Z to get the rotation we want
         Vector3 myEulerAngles = this.transform.rotation.eulerAngles;
         Quaternion laserRotation = Quaternion.Euler(myEulerAngles.x, myEulerAngles.y, myEulerAngles.z - 90);
 
