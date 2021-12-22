@@ -103,5 +103,26 @@ public class Repository : MonoBehaviour
 
         //How to move a gameobject the incorrect way, not using rigidbodies: Place in FixedUpdate
         //transform.position = Vector2.MoveTowards(transform.position, PBase.position, speed * Time.deltaTime);
+
+
+        /*
+        //We check to see whether the round is at its end and whether the bay doors have shut
+        //If so, we enact our rotation logic
+        if (roundEnd && leBayDoorT.GetCurrentAnimatorStateInfo(0).IsName("Waiting"))
+        {
+            //step size is equal to speed times frame time
+            float singleStep = turnRate * Time.deltaTime;
+
+            //Rotate the forward vector towards the target direction by one step
+            Vector3 newDirection = Vector3.RotateTowards(transform.forward, movement, singleStep, 0.0f);
+
+            //Calculate a rotation a step closer to the target and applies rotation to this object
+            transform.rotation = Quaternion.LookRotation(newDirection);
+        }
+
+
+        //^^The above is a failed attempt to rotate the large enemy in 2D space to face it's origin point.
+        //Code would snap the sprite to a 90 degree angle and then fold it out of existence.  
+        */
     }
 }

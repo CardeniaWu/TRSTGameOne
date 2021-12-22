@@ -9,7 +9,7 @@ public class LargeEnemy : MonoBehaviour
     private Transform PBase;
     //We create a variable to hold our desired waypoint
     [SerializeField]
-    private Transform targetWPTransform;
+    private Vector3 targetWPVector3;
     //We create a variable to hold our speed variable
     [SerializeField]
     private float speed;
@@ -29,13 +29,13 @@ public class LargeEnemy : MonoBehaviour
     //We create a variable to hold our velocity
     private Vector2 leVelocity;
     //We create a variable to hold our turnRate
-    private float turnRate = 1.0f;
+    private float turnRate = 50.0f;
 
     [Header("Round End Logic")]
     //We create a bool to hold the value to tell us whether the round is ending or not
     private bool roundEnd = false;
     //We create a variable to hold our location that the LE spawns in so that we may return to it when the round is over
-    private Transform startPositionTransform;
+    private Vector3 startPositionVector3;
 
     
     [Header("Shooting System")]
@@ -64,13 +64,26 @@ public class LargeEnemy : MonoBehaviour
     //We create a variable to allow us to turn debug assistance on or off
     [SerializeField]
     private bool debugAssist;
+    //We create a bool to turn our gizmo on or off
     [SerializeField]
     private bool turnOnGizmo;
+    //We create a transform variable to hold the debug sprite prefab for the start position
+    [SerializeField]
+    private Transform _debugSpriteSPPrefab;
+    //We create a transform variable to hold the debug sprite prefab for the player base
+    [SerializeField]
+    private Transform _debugSpritePBasePrefab;
+    //We create a variable to hold our bool to tells us whether the sprites have been instantiated yet or not
+    private bool dSpritesExist = false;
+    //We set transform variables to hold the instantiated debug assistance sprites for the start point and player base
+    private Transform dAssistStartPoint;
+    private Transform dAssistPlayerBase;
+
 
     // Start is called before the first frame update
     void Start()
     {
-        //We will grab our variables for the PBase and leBarrier
+        //We grab our variables for the PBase and leBarrier
         PBase = GameObject.Find("NuclearReactor").GetComponent<Transform>();
         leBarrier = GameObject.Find("LEBarrier").GetComponent<CircleCollider2D>();
         
@@ -78,7 +91,7 @@ public class LargeEnemy : MonoBehaviour
         le_Rigidbody2D = GetComponent<Rigidbody2D>();
 
         //We set the current position to our startPosition
-        startPositionTransform = this.transform;
+        startPositionVector3 = this.transform.position;
     }
 
     void Update()
@@ -92,23 +105,56 @@ public class LargeEnemy : MonoBehaviour
             roundEnd = false;
         }
 
+        //If debug assist is turned on, we instantiate our debug sprites for the start point and PBase & give them locations 
+        if (debugAssist && dSpritesExist == false)
+        {
+            //Instantiate the prefabs
+            dAssistStartPoint = Instantiate(_debugSpriteSPPrefab);
+            dAssistPlayerBase = Instantiate(_debugSpritePBasePrefab);
+
+            //Set positions for the instantiated prefabs
+            dAssistStartPoint.position = startPositionVector3;
+            dAssistPlayerBase.position = PBase.position;
+
+            //We set the dSpritesExist bool to true
+            dSpritesExist = true;
+        } 
+        else if (debugAssist == false && dSpritesExist == true)
+        {
+            //We destroy the dAssistStartPoint & dAssistPlayerBase game objects if debug assist is turned off
+            Destroy(dAssistStartPoint);
+            Destroy(dAssistPlayerBase);
+
+            //We set the dSpritesExist bool to false
+            dSpritesExist = false;
+        }
+        else if (debugAssist == true && dSpritesExist)
+        {
+            //If debugAssist remains turned on and the sprites already exist, we continually update their position
+            dAssistStartPoint.position = startPositionVector3;
+            dAssistPlayerBase.position = PBase.position;
+        }
+
         ActionsDuringRoundUpdate();
         ActionsAtEndOfRoundUpdate();
     }
     
     void FixedUpdate()
     {
-        //We calculate our movement value
+        //We determine how we calculate the movement value based on the status of the round 
         if (roundEnd == false)
         {
-            targetWPTransform = PBase;
+            //If the round is active, we set the target waypoint transform to the Player Base
+            targetWPVector3 = PBase.position;
         } 
         else
         {
-            targetWPTransform = startPositionTransform;
+            //If the round is inactive, we set the target waypoint transform to the original start position
+            targetWPVector3 = startPositionVector3;
         }
 
-        movement = targetWPTransform.position - this.transform.position;
+        //We calculate the movement value
+        movement = targetWPVector3 - this.transform.position;
         
         //We set leVelocity equal to movement normalized * speed
         leVelocity = (movement).normalized * speed;
@@ -138,14 +184,15 @@ public class LargeEnemy : MonoBehaviour
         //If so, we enact our rotation logic
         if (roundEnd && leBayDoorT.GetCurrentAnimatorStateInfo(0).IsName("Waiting"))
         {
-            //step size is equal to speed times frame time
-            float singleStep = turnRate * Time.deltaTime;
+            //We convert the targetWPVector3 into a localTargetPos Vector2
+            Vector2 localTargetPos = transform.InverseTransformPoint(movement);
 
-            //Rotate the forward vector towards the target direction by one step
-            Vector3 newDirection = Vector3.RotateTowards(transform.forward, movement, singleStep, 0.0f);
+            //Create new rotation towards the target in local space
+            Quaternion rotationGoal = Quaternion.LookRotation(localTargetPos);
+            Quaternion newRotation = Quaternion.RotateTowards(this.transform.localRotation, rotationGoal, turnRate * Time.deltaTime);
 
-            //Calculate a rotation a step closer to the target and applies rotation to this object
-            transform.rotation = Quaternion.LookRotation(newDirection);
+            //Set the new rotation of the large enemy
+            this.transform.localRotation = newRotation;
         }
     }
 

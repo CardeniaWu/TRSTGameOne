@@ -863,6 +863,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 99ce2258589369a458f2f3752cb83808, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  targetWPTransform: {fileID: 0}
   speed: 5
   rightThrust: {fileID: 7677198877947738472}
   leftThrust: {fileID: 7677198878417894118}
@@ -871,8 +872,10 @@ MonoBehaviour:
   LEFire: {fileID: 7677198878956764296}
   prefabLaser: {fileID: 8103335733948227800, guid: 431d91b02d176914180993c2a70c507f, type: 3}
   laserSpawn: {fileID: 7677198878398162349}
-  debugAssist: 0
+  debugAssist: 1
   turnOnGizmo: 0
+  _debugSpriteSPPrefab: {fileID: 6321561379400929797, guid: c860892545324ce49bd520ffa36108b8, type: 3}
+  _debugSpritePBasePrefab: {fileID: 6321561379400929797, guid: c860892545324ce49bd520ffa36108b8, type: 3}
 --- !u!50 &7677198878880926435
 Rigidbody2D:
   serializedVersion: 4

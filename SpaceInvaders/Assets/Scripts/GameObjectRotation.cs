@@ -18,10 +18,10 @@ public class GameObjectRotation : MonoBehaviour
         float angle = Mathf.Atan2(movement.y, movement.x) * Mathf.Rad2Deg;
     10. Create a variable to hold the vector between the parents transform and the point of interest **parentToPoIVector** (Vector2) **done**
     11. Create a variable to hold our parentToPoIAngle (float) **done**
-    12. Convert the parentToPoIDistance to an angle (use code example below):
+    12. Convert the parentToPoIDistance to an angle (use code example below): **done**
         **movement will be replaced by parentToPoIDistance
         float angle = Mathf.Atan2(movement.y, movement.x) * Mathf.Rad2Deg;
-    13. Check to see whether the bToFAngle and parentToPoIAngle align
+    13. Check to see whether the bToFAngle and parentToPoIAngle align **done**
     14. If not, set the gameobject to have a rotationGoal (using Quaternion.LookRotation) of the parentToPoIAngle
     15. Use the rotationGoal to set a newRotation using Quaternion.RotateTowards & the turn rate speed variable
     16. Use this.localRotation = newRotation; to set the rotation of the parent object in motion 
@@ -74,5 +74,12 @@ public class GameObjectRotation : MonoBehaviour
         parentToPoIVector = poi.position - this.transform.position;
         //We convert this parentToPoIVector into an angle
         parentToPoIAngle = Mathf.Atan2(parentToPoIVector.y, parentToPoIVector.x) * Mathf.Rad2Deg;
+
+        if (bToFAngle != parentToPoIAngle)
+        {
+            
+            
+            //rotationGoal = Quaternion.LookRotation();
+        }
     }
 }
